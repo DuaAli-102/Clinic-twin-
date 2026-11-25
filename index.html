@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f3d3e"><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<title>Clinic Twin</title>
+<style>
+:root{--bg:#f3f6f5;--card:#fff;--ink:#12302f;--mut:#5d7574;--line:#d5e0de;--brand:#0f3d3e;--g:#2e9e6b;--gb:#dff3e8;--a:#d9902b;--ab:#fbecd2;--r:#d14b3f;--rb:#f9dcd8}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c1a1a;--card:#13292a;--ink:#e4f0ee;--mut:#8fb0ad;--line:#244544;--brand:#1c5a5a;--g:#4cc58b;--gb:#16382b;--a:#eab05a;--ab:#41300f;--r:#ef7a6e;--rb:#44201c}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.4 "Trebuchet MS","Segoe UI",system-ui,sans-serif;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+header{background:var(--brand);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
+header h1{font-size:18px;margin:0;font-weight:700}
+#clock{font-variant-numeric:tabular-nums;font-size:15px}
+main{flex:1;overflow-y:auto;padding:14px 14px 90px}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{flex:1;border:0;background:none;color:var(--mut);padding:10px 2px;font:inherit;font-size:12px}
+nav button b{display:block;font-size:20px}
+nav button.on{color:var(--brand);font-weight:700}
+@media (prefers-color-scheme:dark){nav button.on{color:var(--g)}}
+.view{display:none}.view.on{display:block}
+.room{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.room.green{border-color:var(--g);background:var(--gb)}.room.amber{border-color:var(--a);background:var(--ab)}.room.red{border-color:var(--r);background:var(--rb)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.room h3{margin:0;font-size:17px}
+.tag{font-weight:700;font-size:13px;padding:2px 10px;border-radius:99px;color:#fff}
+.green .tag{background:var(--g)}.amber .tag{background:var(--a)}.red .tag{background:var(--r)}
+.bar{height:10px;border-radius:6px;background:var(--line);margin:8px 0;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--g);transition:width .5s}
+.amber .bar i{background:var(--a)}.red .bar i{background:var(--r)}
+.dots{min-height:22px;font-size:17px;letter-spacing:1px}
+.sub{color:var(--mut);font-size:14px}
+.ctl{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 14px}
+button.b{border:1px solid var(--brand);background:var(--card);color:var(--brand);border-radius:10px;padding:9px 12px;font:inherit;font-size:14px}
+button.b.p{background:var(--brand);color:#fff}
+@media (prefers-color-scheme:dark){button.b{color:var(--ink);border-color:var(--g)}}
+.big{font-size:56px;font-weight:700;line-height:1}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px}
+select,input{font:inherit;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);width:100%}
+.alert{border-radius:10px;padding:10px 12px;font-weight:700;margin-top:10px}
+.alert.green{background:var(--gb);color:var(--g)}.alert.amber{background:var(--ab);color:var(--a)}.alert.red{background:var(--rb);color:var(--r)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td,th{padding:5px 3px;text-align:left;border-bottom:1px solid var(--line)}
+td input{padding:5px;width:62px}
+.wrap{overflow-x:auto}
+h2{font-size:18px;margin:4px 0 10px}
+ol{padding-left:20px}li{margin-bottom:6px}
+</style>
+</head>
+<body>
+<header><h1>Clinic Twin</h1><span><small id="conn">● Standalone</small> &nbsp; <span id="clock"></span></span></header>
+<main>
+<section class="view on" id="v0">
+ <div class="ctl">
+  <button class="b p" id="pause">Pause</button>
+  <button class="b" id="rush">Send 5 patients to Medical Specialist</button>
+  <button class="b" id="reset">Reset day</button>
+  <button class="b" id="mode">Use live camera</button>
+ </div>
+ <video id="cam" playsinline muted style="display:none;width:100%;max-height:200px;object-fit:cover;border-radius:12px;margin-bottom:10px"></video>
+ <div id="rooms"></div>
+ <p class="sub" id="sum"></p>
+</section>
+<section class="view" id="v1">
+ <h2>Doctor screen</h2>
+ <select id="doc"></select>
+ <div class="card" style="margin-top:10px">
+  <div class="sub">Patients waiting</div><div class="big" id="dn">0</div>
+  <div class="sub" style="margin-top:8px">Estimated wait</div><div style="font-size:26px;font-weight:700" id="dw">0 min</div>
+  <div class="alert green" id="da"></div>
+  <p id="dnext" class="sub"></p>
+ </div>
+ <div class="card"><div class="sub">Queue over the last 12 updates</div><svg id="spark" viewBox="0 0 240 60" width="100%" height="70"></svg></div>
+</section>
+<section class="view" id="v2">
+ <h2>Optimization model</h2>
+ <p class="sub">Your workbook’s LP: add as many extra patients per specialty as unmet demand and spare doctor time allow, at Rs. 1,500 each.</p>
+ <div class="card"><div class="row"><label>Minutes per doctor<input id="mins" type="number" value="300"></label><label>Min per consult<input id="cons" type="number" value="10"></label><label>Rs. per consult<input id="rev" type="number" value="1500"></label></div></div>
+ <div class="card wrap"><table><thead><tr><th>Specialty</th><th>Unmet</th><th>Workload min</th><th>Extra</th></tr></thead><tbody id="lp"></tbody></table></div>
+ <div class="card"><button class="b p" id="usewalk">Use camera walk-aways as unmet demand</button> <button class="b" id="csv" style="margin-top:8px">Download log (CSV)</button></div>
+ <div class="card"><div class="sub">Result</div><div style="font-size:22px;font-weight:700" id="lpres"></div></div>
+</section>
+<section class="view" id="v3">
+ <h2>How it works</h2>
+ <ol>
+  <li><b>Camera</b> counts people per zone. Here a simulation stands in, and the + and − buttons mimic it.</li>
+  <li><b>Model</b>: wait = people waiting × consult time ÷ doctors. Under 15 min is green, up to 30 amber, over 30 red.</li>
+  <li><b>Twin</b>: each room changes colour like a pump level going red.</li>
+  <li><b>Doctor screen</b>: the same numbers, filtered to one doctor.</li>
+  <li><b>Daily LP</b>: walk-aways logged by the camera replace the guessed unmet demand.</li>
+ </ol>
+ <p class="sub">Install it: in Chrome use Menu → Add to Home screen. On iPhone use Share → Add to Home Screen.</p>
+</section>
+</main>
+<nav>
+ <button class="on" data-v="0"><b>🏥</b>Twin</button>
+ <button data-v="1"><b>🩺</b>Doctor</button>
+ <button data-v="2"><b>📈</b>Optimizer</button>
+ <button data-v="3"><b>ℹ️</b>How</button>
+</nav>
+<script>
+const S=[{n:"ENT",u:2,w:200},{n:"GP",u:2,w:240},{n:"Gynecology",u:1,w:180},{n:"Pediatrics",u:1,w:190},{n:"Medical Specialist",u:3,w:250}];
+const R=S.map(s=>({n:s.n,q:1,h:[1],cap:1}));
+let t=0,paused=false,walk=0,CONS=10,note="",online=false,wr=[0,0,0,0,0],lastRed={};
+const $=i=>document.getElementById(i);
+const st=w=>w<15?"green":w<=30?"amber":"red";
+const lab={green:"Normal",amber:"Busy",red:"Overloaded"};
+function clock(){const m=17*60+t*5;return String(Math.floor(m/60)-12).padStart(2,"0").replace(/^0/,"")+":"+String(m%60).padStart(2,"0")+" PM"}
+function draw(){
+ $("clock").textContent=clock();
+ R.forEach((r,i)=>{const red=st(r.q*CONS/r.cap)==="red";if(red&&!lastRed[i]&&navigator.vibrate)try{navigator.vibrate([200,100,200])}catch(e){}lastRed[i]=red});
+ $("rooms").innerHTML=R.map((r,i)=>{const w=r.q*CONS/r.cap,s=st(w);
+  return `<div class="room ${s}"><div class="row"><h3>${r.n}</h3><span class="tag">${lab[s]}</span></div>
+  <div class="bar"><i style="width:${Math.min(100,w/45*100)}%"></i></div>
+  <div class="row"><span class="dots">${"🧍".repeat(Math.min(r.q,10))||"—"}</span><span><b>${r.q}</b> waiting · <b>${Math.round(w)}</b> min</span></div>
+  <div class="ctl" style="margin:8px 0 0"><button class="b" data-a="-" data-i="${i}">−</button><button class="b" data-a="+" data-i="${i}">+</button></div></div>`}).join("");
+ $("sum").textContent="Patients who left without being seen today: "+walk+(note?" · "+note:"");
+ doc();
+}
+function doc(){
+ const r=R[$("doc").value||0],w=r.q*CONS/r.cap,s=st(w);
+ $("dn").textContent=r.q;$("dw").textContent=Math.round(w)+" min";
+ const a=$("da");a.className="alert "+s;
+ a.textContent=s==="green"?"Queue is normal":s==="amber"?"Queue building. Keep consults short.":"Queue high. Call another doctor.";
+ $("dnext").textContent=r.q?"Next patient: #"+(t*7%90+10)+" · "+r.q+" in line":"No one waiting.";
+ const h=r.h.slice(-12),mx=Math.max(5,...h);
+ $("spark").innerHTML=`<polyline fill="none" stroke="currentColor" stroke-width="2" points="${h.map((v,i)=>(i*(240/11))+","+(55-v/mx*50)).join(" ")}"/>`;
+}
+function localTick(){
+ if(paused)return;
+ t=(t+1)%48;
+ R.forEach(r=>{
+  if(Math.random()<(t>24?.55:.4))r.q++;
+  if(r.q>0&&Math.random()<.45)r.q--;
+  if(r.q>=7){r.q--;walk++;r.w=(r.w||0)+1}
+  r.h.push(r.q);if(r.h.length>12)r.h.shift();
+ });
+ draw();
+}
+$("rooms").onclick=e=>{const b=e.target.closest("button");if(!b)return;const r=R[b.dataset.i];
+ const d=b.dataset.a==="+"?1:-1;if(online)api("/api/adjust",{i:+b.dataset.i,d}).then(apply).catch(()=>{});else{r.q=Math.max(0,r.q+d);draw()}};
+$("pause").onclick=e=>{paused=!paused;e.target.textContent=paused?"Resume":"Pause";if(online)api("/api/pause",{paused}).catch(()=>{})};
+$("rush").onclick=()=>{if(online)api("/api/adjust",{i:4,d:5}).then(apply).catch(()=>{});else{R[4].q+=5;draw()}};
+$("reset").onclick=()=>{if(online)api("/api/reset",{}).then(apply).catch(()=>{});else{t=0;walk=0;R.forEach(r=>{r.q=1;r.h=[1]});draw()}};
+$("mode").onclick=()=>{if(!online){note="Start server.py to use the camera";draw();return}api("/api/mode",{mode:$("mode").dataset.m==="camera"?"sim":"camera"}).then(apply).catch(()=>{})};
+$("doc").innerHTML=S.map((s,i)=>`<option value="${i}">Dr. ${s.n}</option>`).join("");
+$("doc").onchange=doc;
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
+ document.querySelectorAll("nav button,.view").forEach(x=>x.classList.remove("on"));
+ b.classList.add("on");$("v"+b.dataset.v).classList.add("on")});
+function lp(){
+ const m=+$("mins").value,c=+$("cons").value,p=+$("rev").value;CONS=c||10;
+ let tot=0;
+ $("lp").innerHTML=S.map((s,i)=>{const sp=Math.max(0,Math.floor((m-s.w)/c)),x=Math.min(s.u,sp);tot+=x;
+  return `<tr><td>${s.n}</td><td><input type="number" data-k="u" data-i="${i}" value="${s.u}"></td><td><input type="number" data-k="w" data-i="${i}" value="${s.w}"></td><td><b>+${x}</b></td></tr>`}).join("");
+ $("lpres").textContent="+"+tot+" patients/day · Rs. "+(tot*p).toLocaleString("en-IN");
+}
+$("lp").onchange=e=>{const i=e.target.dataset.i;S[i][e.target.dataset.k]=+e.target.value;lp()};
+["mins","cons","rev"].forEach(i=>$(i).onchange=()=>{lp();draw()});
+let cam={on:false,model:null,stream:null,busy:false};
+const LOG=["time,source,"+S.map(s=>s.n).join(",")];
+function load(src){return new Promise((ok,no)=>{const e=document.createElement("script");e.src=src;e.onload=ok;e.onerror=()=>no(new Error("needs internet once to download the detector"));document.head.appendChild(e)})}
+async function camStart(){
+ note="Loading detector…";draw();
+ try{
+  if(!window.cocoSsd){await load("https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js");await load("https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js")}
+  cam.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+  const v=$("cam");v.srcObject=cam.stream;v.style.display="block";await v.play();
+  cam.model=cam.model||await cocoSsd.load({base:"lite_mobilenet_v2"});
+  cam.on=true;note="Camera counts people in 5 vertical zones";
+  $("conn").textContent="● Live camera";$("mode").textContent="Use demo simulation";
+ }catch(e){note="Camera unavailable: "+(e.message||e);camStop()}
+ draw();
+}
+function camStop(){cam.on=false;if(cam.stream)cam.stream.getTracks().forEach(t=>t.stop());cam.stream=null;$("cam").style.display="none";$("conn").textContent="● Standalone";$("mode").textContent="Use live camera"}
+async function camTick(){
+ if(cam.busy)return;cam.busy=true;
+ try{const v=$("cam"),p=await cam.model.detect(v),c=[0,0,0,0,0];
+  p.filter(x=>x.class==="person"&&x.score>.5).forEach(x=>{c[Math.min(4,Math.floor((x.bbox[0]+x.bbox[2]/2)/v.videoWidth*5))]++});
+  t=(t+1)%48;R.forEach((r,i)=>{r.q=c[i];r.h.push(c[i]);if(r.h.length>12)r.h.shift()});draw()}catch(e){}
+ cam.busy=false;
+}
+$("mode").onclick=()=>{cam.on?(camStop(),note="",draw()):camStart()};
+function sync(){if(paused)return;if(cam.on)camTick();else localTick();LOG.push([new Date().toLocaleTimeString(),cam.on?"camera":"demo",...R.map(r=>r.q)].join(","));if(LOG.length>5000)LOG.splice(1,1000)}
+$("csv").onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([LOG.join("\n")],{type:"text/csv"}));a.download="clinic_log.csv";a.click()};
+$("usewalk").onclick=()=>{R.forEach((r,i)=>S[i].u=r.w||0);lp()};
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+lp();draw();setInterval(sync,2500);
+</script>
+</body>
+</html>
